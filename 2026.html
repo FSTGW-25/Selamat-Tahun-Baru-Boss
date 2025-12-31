@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Happy New Year Kak Nia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+html,body{
+  margin:0;
+  padding:0;
+  background:black;
+  overflow:hidden;
+}
+canvas{
+  position:absolute;
+  top:0;
+  left:0;
+}
+
+/* ===== MUSIC BUTTON (TAMBAHAN) ===== */
+#musicBtn{
+  position:fixed;
+  top:15px;
+  left:15px;
+  z-index:30;
+  padding:10px 14px;
+  font-size:14px;
+  font-family:"Times New Roman", serif;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  background:rgba(255,255,255,0.15);
+  color:white;
+  backdrop-filter:blur(6px);
+}
+
+#musicBtn:hover{
+  background:rgba(255,255,255,0.3);
+}
+
+/* ===== FINAL TEXT (TAMBAHAN SAJA) ===== */
+#finalText{
+  position:fixed;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  font-family:"Times New Roman", serif;
+  color:white;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 2.5s ease;
+  z-index:10;
+}
+
+#finalText .line1{
+  font-size:2em;
+  margin-bottom:25px;
+}
+
+#finalText .line2{
+  font-size:1.8em;
+  color:#fff7c2;
+}
+</style>
+</head>
+<body>
+
+<canvas id="textCanvas"></canvas>
+<canvas id="crazyCanvas"></canvas>
+
+<!-- ===== TEKS PENUTUP (TAMBAHAN) ===== -->
+<div id="finalText">
+  <div class="line1">
+    Semoga tahun ini penuh sukacita,<br>
+    berkat, dan kasih Tuhan ✨
+  </div>
+  <div class="line2">
+    Tuhan Yesus Memberkati Selalu Boss 🤍💛
+  </div>
+</div>
+
+<!-- ===== AUDIO (TAMBAHAN) ===== -->
+<audio id="bgMusic" loop>
+  <source src="123.mp3" type="audio/mpeg">
+</audio>
+
+<!-- ===== BUTTON PLAY MUSIC (TAMBAHAN) ===== -->
+<button id="musicBtn">▶️ Play Music</button>
+
+<script>
+/* ===============================
+   GLOBAL CONTROLLER
+================================ */
+let MODE = "TEXT";
+const CRAZY_DURATION = 15000;
+
+/* ===============================
+   TEXT FIREWORKS (KODE ASLI KAMU — TIDAK DIUBAH)
+================================ */
+let chars, particles, canvas, ctx, w, h, current;
+let duration = 5000;
+let str = ['HAPPY', 'NEW', 'YEAR', 'Kakkk', 'Niaaaaa'];
+const TEXT_TOTAL_TIME = duration * str.length;
+
+let startTimeText = null;
+
+init();
+resize();
+requestAnimationFrame(render);
+addEventListener('resize', resize);
+
+function makeChar(c){
+    let tmp = document.createElement('canvas');
+    let size = tmp.width = tmp.height = w<400?200:300;
+    let tmpCtx = tmp.getContext('2d');
+    tmpCtx.font = 'bold '+size+'px Arial';
+    tmpCtx.fillStyle = 'white';
+    tmpCtx.textBaseline = "middle";
+    tmpCtx.textAlign = "center";
+    tmpCtx.fillText(c, size/2, size/2);
+    let char2 = tmpCtx.getImageData(0,0,size,size);
+    let char2particles = [];
+    for(var i=0; char2particles.length< particles; i++){
+        let x = size*Math.random();
+        let y = size*Math.random();
+        let offset = parseInt(y)*size*4 + parseInt(x)*4;
+        if(char2.data[offset])
+            char2particles.push([x-size/2,y-size/2])
+    }
+    return char2particles;
+}
+
+function init() {
+    canvas = document.getElementById("textCanvas");
+    ctx = canvas.getContext('2d');
+}
+
+function resize() {
+    w = canvas.width = innerWidth;
+    h = canvas.height = innerHeight;
+    particles = innerWidth<400? 55 : 99;
+}
+
+function makeChars(t) {
+    let actual = parseInt(t / duration);
+    if (actual >= str.length) return;
+    if (current === actual) return;
+    current = actual;
+    chars = [...str[actual]].map(makeChar);
+}
+
+function render(t) {
+    if (MODE !== "TEXT") return;
+
+    if (!startTimeText) startTimeText = t;
+    let elapsed = t - startTimeText;
+
+    if (elapsed >= TEXT_TOTAL_TIME) {
+        startCrazy();
+        return;
+    }
+
+    makeChars(elapsed);
+    ctx.fillStyle = '#00000010';
+    ctx.fillRect(0, 0, w, h);
+    if (chars)
+      chars.forEach((pts,i) => firework(elapsed, i, pts));
+
+    requestAnimationFrame(render);
+}
+
+function firework(t, i, pts) {
+    t -= i*200;
+    let id = i + chars.length*parseInt(t - t%duration);
+    t = t % duration / duration;
+    let dx = (i+1)*w/(1+chars.length);
+    dx += Math.min(0.33, t)*100*Math.sin(id);
+    let dy = h*0.5;
+    dy += Math.sin(id*4547.411)*h*0.1;
+    if (t < 0.33) {
+      rocket(dx, dy, id, t*3);
+    } else {
+      explosion(pts, dx, dy, id, Math.min(1, Math.max(0, t-0.33)*2));
+    }
+}
+
+function rocket(x, y, id, t) {
+  ctx.fillStyle = 'white';
+  let r = 2-2*t + Math.pow(t, 15*t)*16;
+  y = h - y*t;
+  circle(x, y, r);
+}
+
+function explosion(pts, x, y, id, t) {
+  let dy = (t*t*t)*20;
+  let r = Math.sin(id)*1 + 3;
+  r = t<0.5 ? (t+0.5)*t*r : r-t*r;
+  ctx.fillStyle = `hsl(${id*55}, 55%, 55%)`;
+  pts.forEach((xy,i) => {
+      if (i%20 === 0)
+        ctx.fillStyle = `hsl(${id*55}, 55%, ${55+t*Math.sin(t*55+i)*45}%)`;
+      circle(t*xy[0] + x, h - y + t*xy[1] + dy, r);
+  });
+}
+
+function circle(x,y,r) {
+  ctx.beginPath();
+  ctx.ellipse(x, y, r, r, 0, 0, Math.PI*2);
+  ctx.fill();
+}
+
+/* ===============================
+   CRAZY FIREWORKS
+================================ */
+const crazyCanvas = document.getElementById("crazyCanvas");
+const ctxC = crazyCanvas.getContext("2d");
+crazyCanvas.width = innerWidth;
+crazyCanvas.height = innerHeight;
+
+let fw=[], prt=[];
+
+class Firework{
+  constructor(){
+    this.x=Math.random()*innerWidth;
+    this.y=innerHeight;
+    this.vy=-6-Math.random()*4;
+    this.t=innerHeight*0.3+Math.random()*100;
+    this.c=`hsl(${Math.random()*360},100%,60%)`;
+  }
+  update(){
+    this.y+=this.vy;
+    if(this.y<this.t){
+      for(let i=0;i<200;i++) prt.push(new Particle(this.x,this.y,this.c));
+      return false;
+    }
+    return true;
+  }
+  draw(){ctxC.fillStyle=this.c;ctxC.fillRect(this.x,this.y,3,3);}
+}
+
+class Particle{
+  constructor(x,y,c){
+    this.x=x;this.y=y;
+    this.vx=Math.random()*6-3;
+    this.vy=Math.random()*6-3;
+    this.a=1;this.c=c;
+  }
+  update(){this.vy+=0.05;this.x+=this.vx;this.y+=this.vy;this.a-=0.02;}
+  draw(){ctxC.globalAlpha=this.a;ctxC.fillStyle=this.c;ctxC.fillRect(this.x,this.y,2,2);ctxC.globalAlpha=1;}
+}
+
+function renderCrazy(){
+  if(MODE!=="CRAZY") return;
+  ctxC.fillStyle="rgba(0,0,0,0.3)";
+  ctxC.fillRect(0,0,innerWidth,innerHeight);
+  if(Math.random()<0.06) fw.push(new Firework());
+  fw=fw.filter(f=>{f.draw();return f.update();});
+  prt=prt.filter(p=>{p.draw();p.update();return p.a>0;});
+  requestAnimationFrame(renderCrazy);
+}
+
+/* ===============================
+   PENUTUP (TAMBAHAN)
+================================ */
+const finalText = document.getElementById("finalText");
+
+function showFinal(){
+  MODE="END";
+  crazyCanvas.style.display="none";
+  finalText.style.opacity=1;
+
+  setTimeout(startText,6000);
+}
+
+/* ===============================
+   LOOP CONTROL
+================================ */
+function startCrazy(){
+  MODE="CRAZY";
+  canvas.style.display="none";
+  crazyCanvas.style.display="block";
+  finalText.style.opacity=0;
+  fw=[]; prt=[];
+  requestAnimationFrame(renderCrazy);
+  setTimeout(showFinal, CRAZY_DURATION);
+}
+
+function startText(){
+  MODE="TEXT";
+  current=null;
+  startTimeText=null;
+  canvas.style.display="block";
+  crazyCanvas.style.display="none";
+  finalText.style.opacity=0;
+  requestAnimationFrame(render);
+}
+
+/* ===============================
+   MUSIC CONTROLLER (TAMBAHAN SAJA)
+================================ */
+const music = document.getElementById("bgMusic");
+const musicBtn = document.getElementById("musicBtn");
+let isPlaying = false;
+
+musicBtn.addEventListener("click", ()=>{
+  if(!isPlaying){
+    music.play();
+    musicBtn.textContent = "⏸ Pause Music";
+    isPlaying = true;
+  }else{
+    music.pause();
+    musicBtn.textContent = "▶️ Play Music";
+    isPlaying = false;
+  }
+});
+</script>
+
+</body>
+</html>
